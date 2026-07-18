@@ -12,19 +12,45 @@
   --color-primary-700: #1d4ed8;
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
-  --color-gold-400: #fbbf24;
-  --color-gold-500: #f59e0b;
-  --color-gold-600: #d97706;
 }
+
+/* ═══════════════════════════════════════════════════════
+   GLOBAL STYLES
+   ═══════════════════════════════════════════════════════ */
 
 * {
   font-family: "Vazirmatn", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
+  overscroll-behavior: none;
+  
+  /* Safe area padding for notched devices */
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
 }
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
@@ -53,9 +79,13 @@ body {
   animation: spin-slow 1s linear infinite;
 }
 
-/* Custom scrollbar */
+/* ═══════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════ */
+
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -68,7 +98,17 @@ body {
   background: #475569;
 }
 
-/* Number input hide arrows */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FORM ELEMENTS
+   ═══════════════════════════════════════════════════════ */
+
+/* Hide number input arrows */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -76,4 +116,51 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+/* Better focus for accessibility */
+input:focus,
+button:focus {
+  outline: none;
+}
+
+/* Prevent zoom on iOS when focusing inputs */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PWA STANDALONE MODE
+   ═══════════════════════════════════════════════════════ */
+
+@media all and (display-mode: standalone) {
+  body {
+    /* Extra padding when running as PWA */
+    padding-top: max(env(safe-area-inset-top), 8px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE TYPOGRAPHY
+   ═══════════════════════════════════════════════════════ */
+
+html {
+  /* Fluid font size: 14px at 320px, 16px at 1024px+ */
+  font-size: clamp(14px, 0.875rem + 0.25vw, 16px);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SELECTION
+   ═══════════════════════════════════════════════════════ */
+
+::selection {
+  background: rgba(59, 130, 246, 0.4);
+  color: white;
+}
+
+::-moz-selection {
+  background: rgba(59, 130, 246, 0.4);
+  color: white;
 }
