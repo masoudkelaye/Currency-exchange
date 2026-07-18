@@ -2,11 +2,70 @@
 <html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- ═══ Viewport & Responsive ═══ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    
+    <!-- ═══ App Info ═══ -->
     <title>تبدیل ارز | Currency Converter</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="description" content="نرخ لحظه‌ای ارز بازار آزاد ایران - Iran Free Market Currency Rates" />
+    <meta name="author" content="Currency Converter" />
+    <meta name="keywords" content="currency, converter, exchange, rate, iran, rial, dollar, euro, بازار آزاد, تبدیل ارز, نرخ ارز, دلار, ریال" />
+    
+    <!-- ═══ PWA - Web App Manifest ═══ -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- ═══ Theme Colors ═══ -->
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark" />
+    
+    <!-- ═══ iOS Safari - Web App ═══ -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="تبدیل ارز" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f172a' width='100' height='100' rx='20'/><text y='65' x='50' text-anchor='middle' font-size='50'>💱</text></svg>" />
+    
+    <!-- ═══ Android Chrome ═══ -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="تبدیل ارز" />
+    
+    <!-- ═══ Microsoft / Windows ═══ -->
+    <meta name="msapplication-TileColor" content="#0f172a" />
+    <meta name="msapplication-config" content="none" />
+    
+    <!-- ═══ Disable Auto Features ═══ -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="format-detection" content="date=no" />
+    <meta name="format-detection" content="address=no" />
+    <meta name="format-detection" content="email=no" />
+    
+    <!-- ═══ Favicon ═══ -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💱</text></svg>" />
+    
+    <!-- ═══ Preconnect to APIs ═══ -->
+    <link rel="preconnect" href="https://raw.githubusercontent.com" />
+    <link rel="preconnect" href="https://open.er-api.com" />
+    <link rel="dns-prefetch" href="https://baha24.com" />
+    
+    <!-- ═══ Fonts — optimized loading ═══ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet" />
+    </noscript>
+    
+    <!-- ═══ Safe Area for Notched Devices ═══ -->
+    <style>
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sar: env(safe-area-inset-right);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
