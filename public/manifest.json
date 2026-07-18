@@ -1,0 +1,28 @@
+{
+  "name": "تبدیل ارز - Currency Converter",
+  "short_name": "تبدیل ارز",
+  "description": "نرخ لحظه‌ای ارز بازار آزاد ایران - Iran Free Market Currency Rates",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "scope": "/",
+  "lang": "fa",
+  "dir": "rtl",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f172a' width='100' height='100' rx='20'/><text y='65' x='50' text-anchor='middle' font-size='50'>💱</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%233b82f6' width='100' height='100' rx='20'/><text y='65' x='50' text-anchor='middle' font-size='50'>💱</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
