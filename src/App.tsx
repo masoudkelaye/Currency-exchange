@@ -250,7 +250,7 @@ export default function App() {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className={`w-2 h-2 rounded-full pulse-dot ${data?.source === "official" ? "bg-amber-400" : "bg-emerald-400"}`} />
               <span className={`text-[10px] sm:text-xs font-medium ${data?.source === "official" ? "text-amber-400" : "text-emerald-400"}`}>
-                {data?.source === "official" ? t.officialRate : "Bonbast"}
+                {data?.source === "official" ? t.officialRate : t.freeMarket}
               </span>
             </div>
           </div>
