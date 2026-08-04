@@ -3,107 +3,116 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 export interface CurrencyRate {
   symbol: string;
   sellRial: number;
+  buyRial: number;
   lastUpdate: string;
-  source: "free-market" | "official";
+}
+
+export interface GoldRate {
+  code: string;
+  sellRial: number;
+  buyRial: number;
+  lastUpdate: string;
 }
 
 export interface RatesData {
   rates: Record<string, CurrencyRate>;
+  gold: Record<string, GoldRate>;
   fetchedAt: Date;
-  source: "free-market" | "official";
+  source: "bonbast" | "official";
+  rateDate: string;
 }
 
-// ── Constants ──
 const TOMAN_TO_RIAL = 10;
-const FETCH_TIMEOUT = 8000;
-const CACHE_KEY = "currency_rates_cache";
-const CACHE_MAX_AGE = 5 * 60 * 1000; // 5 minutes
+const FETCH_TIMEOUT = 10000;
+const CACHE_KEY = "bonbast_rates_v3";
+const CACHE_MAX_AGE = 3 * 60 * 1000;
 
-// ── Helpers ──
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+const ARCHIVE_DIVISORS: Record<string, number> = { jpy: 10, amd: 10, iqd: 100 };
+const GOLD_CODES = ["azadi1", "emami1", "azadi1_2", "azadi1_4", "azadi1g"];
+
+function loadCache(): RatesData | null {
+  try {
+    const c = localStorage.getItem(CACHE_KEY);
+    if (!c) return null;
+    const { data, ts } = JSON.parse(c);
+    if (Date.now() - ts > CACHE_MAX_AGE) return null;
+    return { ...data, fetchedAt: new Date(data.fetchedAt) };
+  } catch { return null; }
 }
 
-function yesterdayStr(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+function saveCache(data: RatesData) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch {}
 }
 
 async function fetchJSON(url: string, timeout = FETCH_TIMEOUT) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), timeout);
   try {
-    const res = await fetch(url, { 
-      signal: ctrl.signal,
-      headers: { "Accept": "application/json" },
-    });
+    const res = await fetch(url, { signal: ctrl.signal });
     if (!res.ok) throw new Error(res.statusText);
     return await res.json();
-  } finally {
-    clearTimeout(id);
-  }
+  } finally { clearTimeout(id); }
 }
 
-// Archive divisors for currencies given as "per X units"
-const ARCHIVE_DIVISORS: Record<string, number> = {
-  jpy: 10, amd: 10, iqd: 100,
-};
+// ══════════════════════════════════════════════════════════
+//  BONBAST ARCHIVE (from bonbast.com via GitHub)
+// ══════════════════════════════════════════════════════════
+async function fetchFromBonbast(): Promise<RatesData | null> {
+  const urls = [
+    "https://cdn.jsdelivr.net/gh/SamadiPour/rial-exchange-rates-archive@data/gregorian_7days.min.json",
+    "https://raw.githubusercontent.com/SamadiPour/rial-exchange-rates-archive/data/gregorian_7days.min.json",
+  ];
 
-// ── Cache helpers ──
-function loadCache(): RatesData | null {
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (!cached) return null;
-    const { data, timestamp } = JSON.parse(cached);
-    if (Date.now() - timestamp > CACHE_MAX_AGE) return null;
-    return { ...data, fetchedAt: new Date(data.fetchedAt) };
-  } catch {
-    return null;
-  }
-}
-
-function saveCache(data: RatesData) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch {
-    // localStorage might be full or disabled
-  }
-}
-
-// ── Data fetchers ──
-async function fetchFromArchive(): Promise<RatesData | null> {
-  const base = "https://raw.githubusercontent.com/SamadiPour/rial-exchange-rates-archive/main/gregorian";
-  
-  for (const dateStr of [todayStr(), yesterdayStr()]) {
+  for (const url of urls) {
     try {
-      const json = await fetchJSON(`${base}/${dateStr}`);
+      const json = await fetchJSON(url);
       if (!json || typeof json !== "object") continue;
 
+      const dates = Object.keys(json).sort().reverse();
+      if (dates.length === 0) continue;
+
+      const latestDate = dates[0];
+      const dayData = json[latestDate];
+      if (!dayData?.usd?.sell) continue;
+
       const rates: Record<string, CurrencyRate> = {};
-      for (const [code, val] of Object.entries(json)) {
-        const v = val as { sell?: number };
+      const gold: Record<string, GoldRate> = {};
+
+      for (const [code, val] of Object.entries(dayData)) {
+        const v = val as { sell?: number; buy?: number };
         if (!v.sell) continue;
+
+        // Gold & coins
+        if (GOLD_CODES.includes(code)) {
+          gold[code] = {
+            code,
+            sellRial: v.sell * TOMAN_TO_RIAL,
+            buyRial: (v.buy ?? v.sell) * TOMAN_TO_RIAL,
+            lastUpdate: latestDate,
+          };
+          continue;
+        }
+
         const divisor = ARCHIVE_DIVISORS[code] ?? 1;
         rates[code.toUpperCase()] = {
           symbol: code.toUpperCase(),
           sellRial: (v.sell * TOMAN_TO_RIAL) / divisor,
-          lastUpdate: dateStr,
-          source: "free-market",
+          buyRial: ((v.buy ?? v.sell) * TOMAN_TO_RIAL) / divisor,
+          lastUpdate: latestDate,
         };
       }
 
       if (rates.USD && rates.EUR) {
-        return { rates, fetchedAt: new Date(), source: "free-market" };
+        return { rates, gold, fetchedAt: new Date(), source: "bonbast", rateDate: latestDate };
       }
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
   return null;
 }
 
+// ══════════════════════════════════════════════════════════
+//  OPEN ER API (official fallback)
+// ══════════════════════════════════════════════════════════
 async function fetchFromOpenEr(): Promise<RatesData | null> {
   try {
     const json = await fetchJSON("https://open.er-api.com/v6/latest/USD");
@@ -115,53 +124,12 @@ async function fetchFromOpenEr(): Promise<RatesData | null> {
 
     for (const [code, ratePerUsd] of Object.entries(json.rates)) {
       if (code === "USD") continue;
-      rates[code] = {
-        symbol: code,
-        sellRial: irrPerUsd / (ratePerUsd as number),
-        lastUpdate: ts,
-        source: "official",
-      };
+      const rialPrice = irrPerUsd / (ratePerUsd as number);
+      rates[code] = { symbol: code, sellRial: rialPrice, buyRial: rialPrice, lastUpdate: ts };
     }
 
-    return { rates, fetchedAt: new Date(), source: "official" };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchFromBaha24(): Promise<RatesData | null> {
-  const direct = "https://baha24.com/api/v1/price";
-  const urls = [
-    direct,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(direct)}`,
-  ];
-
-  for (const url of urls) {
-    try {
-      const json = await fetchJSON(url, 6000);
-      if (!Array.isArray(json)) continue;
-
-      const rates: Record<string, CurrencyRate> = {};
-      for (const item of json) {
-        if (!item?.symbol || !item?.sell) continue;
-        const divisor = item.symbol === "JPY" ? 10 : 1;
-        rates[item.symbol] = {
-          symbol: item.symbol,
-          sellRial: (parseFloat(item.sell) * TOMAN_TO_RIAL) / divisor,
-          lastUpdate: item.last_update ?? "",
-          source: "free-market",
-        };
-      }
-
-      if (rates.USD && rates.EUR) {
-        return { rates, fetchedAt: new Date(), source: "free-market" };
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
+    return { rates, gold: {}, fetchedAt: new Date(), source: "official", rateDate: ts.split("T")[0] };
+  } catch { return null; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -172,7 +140,7 @@ export function useExchangeRates(refreshInterval = 30_000) {
   const [loading, setLoading] = useState(!loadCache());
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(refreshInterval / 1000);
-  
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
@@ -180,35 +148,15 @@ export function useExchangeRates(refreshInterval = 30_000) {
   const fetchRates = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-
     try {
       setLoading(true);
       setError(null);
 
-      // Try sources in order of preference
-      const baha = await fetchFromBaha24();
-      if (baha) {
-        setData(baha);
-        saveCache(baha);
-        setCountdown(refreshInterval / 1000);
-        return;
-      }
-
-      const archive = await fetchFromArchive();
-      if (archive) {
-        setData(archive);
-        saveCache(archive);
-        setCountdown(refreshInterval / 1000);
-        return;
-      }
+      const bonbast = await fetchFromBonbast();
+      if (bonbast) { setData(bonbast); saveCache(bonbast); setCountdown(refreshInterval / 1000); return; }
 
       const official = await fetchFromOpenEr();
-      if (official) {
-        setData(official);
-        saveCache(official);
-        setCountdown(refreshInterval / 1000);
-        return;
-      }
+      if (official) { setData(official); saveCache(official); setCountdown(refreshInterval / 1000); return; }
 
       throw new Error("All sources failed");
     } catch (err) {
@@ -220,44 +168,26 @@ export function useExchangeRates(refreshInterval = 30_000) {
   }, [refreshInterval]);
 
   useEffect(() => {
-    // Only fetch if we don't have cached data
-    if (!data) {
-      fetchRates();
-    } else {
-      // Still fetch in background to update
-      fetchRates();
-    }
-
+    fetchRates();
     timerRef.current = setInterval(fetchRates, refreshInterval);
     countdownRef.current = setInterval(() => {
       setCountdown((p) => (p <= 1 ? refreshInterval / 1000 : p - 1));
     }, 1000);
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [fetchRates, refreshInterval]);
 
-  // Memoized conversion function
   const convert = useCallback(
     (amount: number, from: string, to: string): number | null => {
       if (!data?.rates) return null;
       if (from === "IRR" && to === "IRR") return amount;
-      if (from === "IRR") {
-        const r = data.rates[to];
-        return r ? amount / r.sellRial : null;
-      }
-      if (to === "IRR") {
-        const r = data.rates[from];
-        return r ? amount * r.sellRial : null;
-      }
-      const rF = data.rates[from];
-      const rT = data.rates[to];
-      if (!rF || !rT) return null;
-      return (amount * rF.sellRial) / rT.sellRial;
-    },
-    [data]
+      if (from === "IRR") { const r = data.rates[to]; return r ? amount / r.sellRial : null; }
+      if (to === "IRR") { const r = data.rates[from]; return r ? amount * r.sellRial : null; }
+      const rF = data.rates[from], rT = data.rates[to];
+      return (rF && rT) ? (amount * rF.sellRial) / rT.sellRial : null;
+    }, [data]
   );
 
   const getRateInRial = useCallback(
@@ -265,14 +195,7 @@ export function useExchangeRates(refreshInterval = 30_000) {
     [data]
   );
 
-  // Return memoized object to prevent unnecessary re-renders
   return useMemo(() => ({
-    data,
-    loading,
-    error,
-    countdown,
-    fetchRates,
-    convert,
-    getRateInRial,
+    data, loading, error, countdown, fetchRates, convert, getRateInRial,
   }), [data, loading, error, countdown, fetchRates, convert, getRateInRial]);
 }

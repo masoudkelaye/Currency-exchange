@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
-import { type Lang, translations, currencies, getCurrencyName, type CurrencyInfo } from "./i18n";
+import { type Lang, translations, currencies, getCurrencyName, type CurrencyInfo, goldItems, getGoldName } from "./i18n";
 import { useExchangeRates } from "./useExchangeRates";
 
 /* ══════════════════════════════════════════════════════════
@@ -250,12 +250,17 @@ export default function App() {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className={`w-2 h-2 rounded-full pulse-dot ${data?.source === "official" ? "bg-amber-400" : "bg-emerald-400"}`} />
               <span className={`text-[10px] sm:text-xs font-medium ${data?.source === "official" ? "text-amber-400" : "text-emerald-400"}`}>
-                {data?.source === "official" ? t.officialRate : t.freeMarket}
+                {data?.source === "official" ? t.officialRate : "Bonbast"}
               </span>
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1">💱 {t.appTitle}</h1>
           <p className="text-slate-400 text-xs sm:text-sm">{t.appSubtitle}</p>
+          {data?.rateDate && data?.source === "bonbast" && (
+            <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
+              {lang === "fa" ? `📅 تاریخ نرخ: ${data.rateDate}` : `📅 Rate date: ${data.rateDate}`}
+            </p>
+          )}
           {data?.source === "official" && (
             <p className="text-[10px] sm:text-[11px] text-amber-500/70 mt-2 max-w-md mx-auto px-2">{t.officialWarn}</p>
           )}
@@ -363,6 +368,45 @@ export default function App() {
                 })}
               </div>
             </section>
+
+            {/* ═══════════════════════════════════════════
+                3) GOLD & COINS
+               ═══════════════════════════════════════════ */}
+            {data.source === "bonbast" && Object.keys(data.gold).length > 0 && (
+              <section className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+                <div className="px-3 sm:px-5 py-3 sm:py-3.5 border-b border-slate-700/40">
+                  <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <span className="text-base sm:text-lg">🪙</span>{t.goldRates}
+                  </h2>
+                </div>
+                <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {goldItems.map((g) => {
+                    const rate = data.gold[g.code];
+                    if (!rate) return null;
+                    return (
+                      <div key={g.code}
+                        className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 bg-amber-900/10 rounded-xl border border-amber-700/20 hover:border-amber-600/40 transition-colors">
+                        <span className="text-xl sm:text-2xl leading-none shrink-0">{g.icon}</span>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-[11px] sm:text-[13px] text-white font-semibold truncate">{getGoldName(g, lang)}</span>
+                          <span className="text-[9px] sm:text-[10px] text-slate-500">
+                            {t.buy}: <span className="text-slate-400 font-mono" dir="ltr">{fmtRial(rate.buyRial)}</span>
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end shrink-0" dir="ltr">
+                          <span className="text-[13px] sm:text-[14px] md:text-[15px] text-amber-400 font-bold font-mono tabular-nums leading-tight">
+                            {fmtRial(rate.sellRial)}
+                          </span>
+                          <span className="text-[8px] sm:text-[9px] text-slate-600 leading-tight mt-0.5">
+                            {t.sell} • ﷼
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* ═══════════════════════════════════════════
                 FOOTER

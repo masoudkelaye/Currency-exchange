@@ -5,13 +5,13 @@ export interface Translations {
   appSubtitle: string;
   from: string;
   amount: string;
-  swap: string;
   autoRefresh: string;
   seconds: string;
   loading: string;
   error: string;
   retry: string;
   liveRates: string;
+  goldRates: string;
   poweredBy: string;
   enterAmount: string;
   freeMarket: string;
@@ -22,66 +22,63 @@ export interface Translations {
   lastUpdate: string;
   converter: string;
   perUnit: string;
-  perUnits: string;
-  convertedAmount: string;
-  selectCurrency: string;
-  search: string;
+  sell: string;
+  buy: string;
+  rateDate: string;
 }
 
 export const translations: Record<Lang, Translations> = {
   fa: {
     appTitle: "تبدیل ارز",
-    appSubtitle: "نرخ لحظه‌ای بازار آزاد ایران",
+    appSubtitle: "نرخ لحظه‌ای بازار آزاد ایران • منبع: Bonbast.com",
     from: "مبدأ ارز",
     amount: "مبلغ",
-    swap: "جابجایی",
     autoRefresh: "بروزرسانی خودکار تا",
     seconds: "ثانیه",
-    loading: "در حال دریافت نرخ‌های بازار آزاد...",
+    loading: "در حال دریافت نرخ‌ها از Bonbast...",
     error: "خطا در دریافت اطلاعات",
     retry: "تلاش مجدد",
     liveRates: "نرخ لحظه‌ای ارزها",
-    poweredBy: "قیمت‌ها بر اساس بازار آزاد ایران",
+    goldRates: "سکه و طلا",
+    poweredBy: "قیمت‌ها از Bonbast.com • بازار آزاد ایران",
     enterAmount: "مبلغ را وارد کنید...",
     freeMarket: "بازار آزاد",
     officialRate: "نرخ رسمی",
-    officialWarn: "⚠️ نمایش نرخ رسمی بانک مرکزی (دسترسی به API بازار آزاد میسر نشد)",
+    officialWarn: "⚠️ نمایش نرخ رسمی بانک مرکزی (دسترسی به Bonbast میسر نشد)",
     currency: "ارز",
     priceInRial: "قیمت (ریال)",
     lastUpdate: "بروزرسانی",
     converter: "مبدل ارز",
     perUnit: "هر واحد",
-    perUnits: "هر",
-    convertedAmount: "معادل",
-    selectCurrency: "انتخاب ارز",
-    search: "جستجو...",
+    sell: "فروش",
+    buy: "خرید",
+    rateDate: "تاریخ نرخ",
   },
   en: {
     appTitle: "Currency Converter",
-    appSubtitle: "Iran Free Market Live Rates",
+    appSubtitle: "Iran Free Market Live Rates • Source: Bonbast.com",
     from: "From Currency",
     amount: "Amount",
-    swap: "Swap",
     autoRefresh: "Auto-refresh in",
     seconds: "sec",
-    loading: "Fetching free market rates...",
+    loading: "Fetching rates from Bonbast...",
     error: "Error fetching data",
     retry: "Retry",
     liveRates: "Live Currency Rates",
-    poweredBy: "Based on Iran's free market rates",
+    goldRates: "Gold & Coins",
+    poweredBy: "Rates from Bonbast.com • Iran's free market",
     enterAmount: "Enter amount...",
     freeMarket: "Free Market",
     officialRate: "Official Rate",
-    officialWarn: "⚠️ Showing official central-bank rate (free-market API unavailable)",
+    officialWarn: "⚠️ Showing official rate (Bonbast unavailable)",
     currency: "Currency",
     priceInRial: "Price (Rial)",
     lastUpdate: "Updated",
     converter: "Converter",
     perUnit: "per unit",
-    perUnits: "per",
-    convertedAmount: "Equivalent",
-    selectCurrency: "Select currency",
-    search: "Search...",
+    sell: "Sell",
+    buy: "Buy",
+    rateDate: "Rate date",
   },
 };
 
@@ -108,6 +105,25 @@ export const currencies: CurrencyInfo[] = [
   { code: "AED", symbol: "د.إ", nameFa: "درهم امارات", nameEn: "UAE Dirham", flag: "🇦🇪" },
 ];
 
+export interface GoldItem {
+  code: string;
+  nameFa: string;
+  nameEn: string;
+  icon: string;
+}
+
+export const goldItems: GoldItem[] = [
+  { code: "emami1",   nameFa: "سکه امامی",       nameEn: "Emami Gold Coin",   icon: "🥇" },
+  { code: "azadi1",   nameFa: "سکه بهار آزادی",  nameEn: "Azadi Gold Coin",   icon: "🪙" },
+  { code: "azadi1_2", nameFa: "نیم سکه",          nameEn: "Half Azadi Coin",   icon: "🪙" },
+  { code: "azadi1_4", nameFa: "ربع سکه",          nameEn: "Quarter Azadi Coin", icon: "🪙" },
+  { code: "azadi1g",  nameFa: "سکه گرمی",         nameEn: "Gerami Coin",       icon: "✨" },
+];
+
 export function getCurrencyName(c: CurrencyInfo, lang: Lang): string {
   return lang === "fa" ? c.nameFa : c.nameEn;
+}
+
+export function getGoldName(g: GoldItem, lang: Lang): string {
+  return lang === "fa" ? g.nameFa : g.nameEn;
 }
