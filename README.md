@@ -117,20 +117,27 @@ npm run preview
 ## 📂 ساختار پروژه — Project Structure
 
 ```
-currency-converter/
-├── index.html              # صفحه اصلی با تنظیمات RTL و فونت فارسی
-├── package.json            # وابستگی‌های پروژه
-├── tsconfig.json           # تنظیمات TypeScript
-├── vite.config.ts          # تنظیمات Vite
+Currency-exchange/
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── .gitignore
 ├── src/
-│   ├── main.tsx            # نقطه ورود برنامه
-│   ├── App.tsx             # کامپوننت اصلی (مبدل + جدول نرخ‌ها)
-│   ├── index.css           # استایل‌های سراسری + Tailwind
-│   ├── i18n.ts             # تنظیمات دو زبانه + لیست ارزها
-│   ├── useExchangeRates.ts # هوک React برای دریافت نرخ ارز
+│   ├── main.tsx            # نقطه ورود + ثبت Service Worker
+│   ├── App.tsx
+│   ├── index.css
+│   ├── i18n.ts
+│   ├── useExchangeRates.ts
+│   ├── registerSW.ts
+│   ├── vite-env.d.ts
 │   └── utils/
-│       └── cn.ts           # ابزار کمکی classNames
-└── public/                 # فایل‌های استاتیک
+│       └── cn.ts
+└── public/
+    ├── manifest.json
+    ├── sw.js
+    ├── icon-192.png
+    └── icon-512.png
 ```
 
 ---
