@@ -252,6 +252,11 @@ export default function App() {
               <span className={`text-[10px] sm:text-xs font-medium ${data?.source === "official" ? "text-amber-400" : "text-emerald-400"}`}>
                 {data?.source === "official" ? t.officialRate : t.freeMarket}
               </span>
+              {data?.source === "bonbast-live" && (
+                <span className="text-[9px] sm:text-[10px] font-bold text-red-400 bg-red-400/10 border border-red-400/30 rounded px-1.5 py-0.5 animate-pulse">
+                  ● {t.liveNow}
+                </span>
+              )}
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1">💱 {t.appTitle}</h1>
@@ -372,7 +377,7 @@ export default function App() {
             {/* ═══════════════════════════════════════════
                 3) GOLD & COINS
                ═══════════════════════════════════════════ */}
-            {data.source === "bonbast" && Object.keys(data.gold).length > 0 && (
+            {(data.source === "bonbast" || data.source === "bonbast-live") && Object.keys(data.gold).length > 0 && (
               <section className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl shadow-black/20">
                 <div className="px-3 sm:px-5 py-3 sm:py-3.5 border-b border-slate-700/40">
                   <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">

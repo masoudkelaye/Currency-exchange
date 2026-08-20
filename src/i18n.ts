@@ -25,6 +25,7 @@ export interface Translations {
   sell: string;
   buy: string;
   rateDate: string;
+  liveNow: string;
 }
 
 export const translations: Record<Lang, Translations> = {
@@ -53,6 +54,7 @@ export const translations: Record<Lang, Translations> = {
     sell: "فروش",
     buy: "خرید",
     rateDate: "تاریخ نرخ",
+    liveNow: "زنده",
   },
   en: {
     appTitle: "Currency Converter",
@@ -79,6 +81,7 @@ export const translations: Record<Lang, Translations> = {
     sell: "Sell",
     buy: "Buy",
     rateDate: "Rate date",
+    liveNow: "Live",
   },
 };
 

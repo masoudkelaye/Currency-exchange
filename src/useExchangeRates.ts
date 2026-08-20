@@ -18,14 +18,20 @@ export interface RatesData {
   rates: Record<string, CurrencyRate>;
   gold: Record<string, GoldRate>;
   fetchedAt: Date;
-  source: "bonbast" | "official";
+  source: "live" | "bonbast" | "official" | "bonbast-live";
   rateDate: string;
 }
 
 const TOMAN_TO_RIAL = 10;
 const FETCH_TIMEOUT = 10000;
 const CACHE_KEY = "bonbast_rates_v3";
-const CACHE_MAX_AGE = 3 * 60 * 1000;
+const CACHE_MAX_AGE = 90 * 1000;
+
+// آدرس endpoint خودت که scrape.py/serve.py روی سرور Oracle سرو می‌کنه.
+// می‌تونی موقع build با VITE_LIVE_RATES_URL بازنویسیش کنی، مثلاً:
+//   VITE_LIVE_RATES_URL=https://your-domain.com/bonbast/rates.json
+const LIVE_SERVER_URL =
+  import.meta.env.VITE_LIVE_RATES_URL || "http://YOUR_SERVER_IP:8787/rates.json";
 
 const ARCHIVE_DIVISORS: Record<string, number> = { jpy: 10, amd: 10, iqd: 100 };
 const GOLD_CODES = ["azadi1", "emami1", "azadi1_2", "azadi1_4", "azadi1g"];
@@ -52,6 +58,25 @@ async function fetchJSON(url: string, timeout = FETCH_TIMEOUT) {
     if (!res.ok) throw new Error(res.statusText);
     return await res.json();
   } finally { clearTimeout(id); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  LIVE (own Oracle server, scrape.py + serve.py)
+// ══════════════════════════════════════════════════════════
+async function fetchFromLiveServer(): Promise<RatesData | null> {
+  if (!LIVE_SERVER_URL || LIVE_SERVER_URL.includes("YOUR_SERVER_IP")) return null;
+  try {
+    const json = await fetchJSON(LIVE_SERVER_URL, 5000);
+    if (!json?.rates?.USD || !json?.rates?.EUR) return null;
+
+    return {
+      rates: json.rates,
+      gold: json.gold ?? {},
+      fetchedAt: new Date(json.fetchedAt ?? Date.now()),
+      source: "bonbast-live",
+      rateDate: json.rateDate ?? new Date().toISOString().split("T")[0],
+    };
+  } catch { return null; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -151,6 +176,9 @@ export function useExchangeRates(refreshInterval = 30_000) {
     try {
       setLoading(true);
       setError(null);
+
+      const live = await fetchFromLiveServer();
+      if (live) { setData(live); saveCache(live); setCountdown(refreshInterval / 1000); return; }
 
       const bonbast = await fetchFromBonbast();
       if (bonbast) { setData(bonbast); saveCache(bonbast); setCountdown(refreshInterval / 1000); return; }
