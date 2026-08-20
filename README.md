@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💱 Currency Converter — تبدیل ارز
+# 💱 Currency Exchange — تبدیل ارز
 
 **نرخ لحظه‌ای ارزهای بازار آزاد ایران با بروزرسانی خودکار هر ۳۰ ثانیه**
 
