@@ -86,7 +86,7 @@ The base currency is **Iranian Rial (IRR)**, and 10 major world currencies are s
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/currency-converter.git
+git clone https://github.com/masoudkelaye/currency-exchange.git
 cd currency-converter
 
 # 2. Install dependencies
