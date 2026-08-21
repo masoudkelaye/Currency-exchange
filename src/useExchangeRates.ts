@@ -365,42 +365,46 @@ export function useExchangeRates(refreshInterval = 30_000) {
     try {
       setError(null);
 
-      const livePromise = fetchFromLiveServer().then((live) => {
-        if (live) {
-          liveWinsRef.current = true;
-          setData(live);
-          saveCache(live);
-          setCountdown(refreshInterval / 1000);
-          setLoading(false);
-        }
-        return live;
-      });
-
-      // بک‌آپ موازی با live — زودتر که رسید نشان داده می‌شود؛ اگر بعداً live آمد جایگزین می‌شود
+      const livePromise = fetchFromLiveServer();
       const backupPromise = (async () => {
         const bonbast = await fetchFromBonbast();
         if (bonbast) return bonbast;
         return await fetchFromOpenEr();
-      })().then((backup) => {
-        if (backup && !liveWinsRef.current) {
-          setData(backup);
-          saveCache(backup);
-          setCountdown(refreshInterval / 1000);
-          setLoading(false);
-        }
-        return backup;
+      })();
+
+      // بار اول: اگر هنوز داده‌ای نیست، backup را زود نشان بده (بدون حذف live بعدی)
+      void backupPromise.then((backup) => {
+        if (!backup || liveWinsRef.current) return;
+        setData((current) => {
+          // اگر همین الان live آمده یا از قبل live بود، آرشیو را جایگزین نکن (جلوگیری از چشمک نشانگر)
+          if (liveWinsRef.current) return current;
+          if (current?.source === "bonbast-live" || current?.source === "live") return current;
+          if (current) return current; // در رفرش‌های بعدی هم دادهٔ موجود را نگه دار تا live/backup نهایی مشخص شود
+          return backup;
+        });
+        setLoading(false);
       });
 
       const [live, backup] = await Promise.all([livePromise, backupPromise]);
 
-      if (!live && !backup) {
-        throw new Error("All sources failed");
-      }
-      // اگر فقط backup بود و هنوز set نشده (نادر)، دوباره set کن
-      if (!live && backup && !liveWinsRef.current) {
-        setData(backup);
+      if (live) {
+        liveWinsRef.current = true;
+        setData(live);
+        saveCache(live);
+        setCountdown(refreshInterval / 1000);
+      } else if (backup) {
+        setData((current) => {
+          // live شکست خورد؛ فقط اگر live فعال روی صفحه نیست، backup بگذار
+          if (current?.source === "bonbast-live" || current?.source === "live") {
+            // یک‌بار live از دست رفت — به backup سوییچ کن
+            return backup;
+          }
+          return backup;
+        });
         saveCache(backup);
         setCountdown(refreshInterval / 1000);
+      } else {
+        throw new Error("All sources failed");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
