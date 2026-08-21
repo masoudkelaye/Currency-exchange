@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/rates.json",
+      "destination": "http://92.5.17.123:8787/rates.json"
+    }
+  ]
+}

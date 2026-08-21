@@ -1,8 +1,8 @@
 // Service Worker registration with inline SW via Blob
-// This works even when the app is served as a single file
+// Works even when the app is served as a single file
 
 const SW_CODE = `
-const CACHE_NAME = "currency-v2";
+const CACHE_NAME = "currency-v3";
 const API_CACHE = "api-v1";
 const FONT_CACHE = "fonts-v1";
 
@@ -81,18 +81,15 @@ export function registerServiceWorker() {
 
   window.addEventListener("load", async () => {
     try {
-      // Try registering from /sw.js first (works on real servers)
       const reg = await navigator.serviceWorker.register("/sw.js").catch(() => null);
       if (reg) {
         console.log("SW registered from file");
         return;
       }
 
-      // Fallback: register inline SW via Blob (works with single-file builds)
       const blob = new Blob([SW_CODE], { type: "application/javascript" });
       const swUrl = URL.createObjectURL(blob);
       await navigator.serviceWorker.register(swUrl, { scope: "/" }).catch(() => {
-        // Blob SW with scope "/" may fail, try without scope
         return navigator.serviceWorker.register(swUrl);
       });
       console.log("SW registered from blob");

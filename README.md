@@ -14,8 +14,7 @@
 
 [ویژگی‌ها](#-ویژگیها--features) •
 [نصب و راه‌اندازی](#-نصب-و-راهاندازی--installation) •
-[ساختار پروژه](#-ساختار-پروژه--project-structure) •
-[API](#-منبع-داده--data-source)
+[ساختار پروژه](#-ساختار-پروژه--project-structure)
 
 </div>
 
@@ -26,18 +25,18 @@
 <details open>
 <summary>🇮🇷 فارسی</summary>
 
-**تبدیل ارز** یک وب اپلیکیشن مدرن و واکنش‌گرا برای تبدیل ارزهای پرکاربرد دنیا با استفاده از **نرخ لحظه‌ای بازار آزاد ایران** است. این برنامه برخلاف بسیاری از سرویس‌های مشابه، به جای نرخ دولتی، از نرخ واقعی بازار آزاد استفاده می‌کند.
+**تبدیل ارز** یک وب اپلیکیشن مدرن برای تبدیل و پیگیری نرخ ارز با **نرخ بازار آزاد ایران** است. شامل مبدل، تابلوی نرخ (خرید/فروش)، آرشیو تاریخی و نمودار روند قیمت.
 
-ارز پایه این برنامه **ریال ایران** است و ۱۰ ارز پرکاربرد دنیا در آن پشتیبانی می‌شوند: دلار آمریکا، یورو، پوند انگلیس، فرانک سوئیس، ین ژاپن، دلار کانادا، دلار استرالیا، یوآن چین، لیر ترکیه و درهم امارات.
+ارز پایه **ریال ایران** است و ده‌ها ارز پرکاربرد (دلار، یورو، پوند، لیر، درهم، و …) پشتیبانی می‌شوند. امکان نمایش به **ریال** یا **تومان** وجود دارد.
 
 </details>
 
 <details>
 <summary>🇬🇧 English</summary>
 
-**Currency Converter** is a modern, responsive web application for converting major world currencies using **live rates from Iran's free market**. Unlike many similar services, this app uses real free-market rates instead of official government rates.
+**Currency Exchange** is a modern web app for converting and tracking currencies using **Iran free-market rates**. It includes a converter, live buy/sell board, historical archive, and price charts.
 
-The base currency is **Iranian Rial (IRR)**, and 10 major world currencies are supported: US Dollar, Euro, British Pound, Swiss Franc, Japanese Yen, Canadian Dollar, Australian Dollar, Chinese Yuan, Turkish Lira, and UAE Dirham.
+Base currency is **Iranian Rial (IRR)** with many major world currencies. Display can switch between **Rial** and **Toman**.
 
 </details>
 
@@ -45,70 +44,57 @@ The base currency is **Iranian Rial (IRR)**, and 10 major world currencies are s
 
 ## ✨ ویژگی‌ها — Features
 
-- 🌐 **دو زبانه** — پشتیبانی کامل از فارسی (راست‌چین) و انگلیسی (چپ‌چین) با تغییر فوری زبان
-- 💵 **نرخ بازار آزاد** — استفاده از نرخ واقعی بازار آزاد ایران (نه نرخ دولتی)
-- 🔄 **بروزرسانی خودکار هر ۳۰ ثانیه** — نمایش شمارنده تا بروزرسانی بعدی
-- 🎯 **مبدل ارز هوشمند** — تبدیل سریع بین هر دو ارز با نمایش نرخ تبدیل دوطرفه
-- 📊 **تابلوی قیمت‌ها** — نمایش نرخ لحظه‌ای تمام ارزها به صورت گرید دو ستونه
-- 🎨 **طراحی مدرن** — رابط کاربری زیبا با Glassmorphism و تم تیره
-- 📱 **کاملاً واکنش‌گرا** — سازگار با موبایل، تبلت و دسکتاپ
-- 🔤 **نام کامل ارزها** — نام‌های کامل و فارسی مانند «دلار آمریکا» و «پوند انگلیس»
-- ⚡ **سریع و بهینه** — ساخته شده با Vite 7 و React 19
-- 📲 **PWA کامل** — قابل نصب، Service Worker، کش آفلاین، آیکون اختصاصی
-- 📱 **کاملاً واکنش‌گرا** — بهینه برای تمام اندازه‌های صفحه (موبایل، تبلت، دسکتاپ)
-- 🔲 **حالت تمام‌صفحه** — پشتیبانی از Safe Area برای دستگاه‌های Notch‌دار
-- 🪙 **قیمت سکه و طلا** — سکه امامی، بهار آزادی، نیم سکه، ربع سکه، سکه گرمی
-- 📶 **پشتیبانی آفلاین** — نمایش آخرین نرخ‌ها حتی بدون اینترنت
+- 🌐 **دو زبانه** — فارسی (RTL) و انگلیسی (LTR)
+- 💵 **نرخ بازار آزاد** — با fallback به نرخ رسمی
+- 🔄 **بروزرسانی خودکار هر ۳۰ ثانیه**
+- 🎯 **مبدل ارز** — تبدیل بین ارزها با نمایش نتایج پرکاربرد (+ نمایش بیشتر)
+- 📊 **تابلوی نرخ** — خرید و فروش لحظه‌ای
+- 🗂️ **آرشیو** — نرخ‌های تاریخی ۷ / ۳۰ / ۹۰ روز
+- 📈 **نمودار** — روند قیمت با Recharts
+- 🪙 **سکه و طلا** — امامی، بهار آزادی، نیم، ربع، گرمی
+- 💴 **ریال / تومان** — سوییچ واحد (با همگام‌سازی مبلغ وقتی مبدأ ریال است)
+- 🕐 **ساعت تهران + ساعت محلی**
+- 📲 **PWA** — Service Worker، کش آفلاین، قابل نصب
+- 🎨 **UI مدرن** — Glassmorphism، تم تیره، واکنش‌گرا
 
 ---
 
-## 🛠️ تکنولوژی‌های استفاده شده — Tech Stack
+## 🛠️ تکنولوژی‌ها — Tech Stack
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **React** | 19.2 | کتابخانه UI |
-| **TypeScript** | 5.9 | تایپ‌سیف بودن کد |
-| **Vite** | 7.3 | ابزار ساخت و توسعه |
-| **Tailwind CSS** | 4.1 | استایل‌دهی |
-| **Vazirmatn Font** | — | فونت فارسی از Google Fonts |
-| **Baha24 API** | — | منبع نرخ‌های بازار آزاد |
+| **React** | 19.2 | UI |
+| **TypeScript** | 5.9 | Type safety |
+| **Vite** | 7.3 | Build |
+| **Tailwind CSS** | 4.1 | Styles |
+| **Recharts** | 2.x | Charts |
+| **Vazirmatn** | — | Persian font |
 
 ---
 
 ## 🚀 نصب و راه‌اندازی — Installation
 
-### پیش‌نیازها — Prerequisites
-
-- Node.js نسخه `18` یا بالاتر
-- npm یا yarn
-
-### نصب — Install
+### پیش‌نیازها
+- Node.js 18+
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/masoudkelaye/Currency-exchange.git
 cd Currency-exchange
 
-# 2. Install dependencies
 npm install
-
-# 3. Start development server
 npm run dev
 ```
 
-برنامه روی آدرس `http://localhost:5173` اجرا خواهد شد.
+آدرس پیش‌فرض: `http://localhost:5173`
 
-### ساخت نسخه پروداکشن — Build for Production
-
+### متغیر محیطی اختیاری
 ```bash
-npm run build
+VITE_LIVE_RATES_URL=https://your-domain.com/rates.json npm run build
 ```
 
-خروجی در پوشه `dist/` به صورت یک فایل HTML تکی (`index.html`) ایجاد می‌شود که می‌تواند روی هر سرور وب استاتیک یا GitHub Pages میزبانی شود.
-
-### پیش‌نمایش نسخه بیلد — Preview Production Build
-
+### Build
 ```bash
+npm run build    # خروجی تک‌فایل در dist/
 npm run preview
 ```
 
@@ -124,128 +110,44 @@ Currency-exchange/
 ├── vite.config.ts
 ├── .gitignore
 ├── src/
-│   ├── main.tsx            # نقطه ورود + ثبت Service Worker
-│   ├── App.tsx
+│   ├── main.tsx              # ورود + ثبت Service Worker
+│   ├── App.tsx               # UI (تب‌ها، مبدل، نرخ، آرشیو، نمودار)
 │   ├── index.css
-│   ├── i18n.ts
-│   ├── useExchangeRates.ts
+│   ├── i18n.ts               # ترجمه‌ها + لیست ارز و سکه
+│   ├── useExchangeRates.ts   # هوک نرخ + آرشیو
 │   ├── registerSW.ts
 │   ├── vite-env.d.ts
 │   └── utils/
 │       └── cn.ts
 └── public/
     ├── manifest.json
-    ├── sw.js
-    ├── icon-192.png
-    └── icon-512.png
+    └── sw.js
 ```
 
 ---
 
-## 🔌 منبع داده — Data Source
-
-این برنامه از **سیستم هوشمند ۳ لایه** برای دریافت نرخ ارز استفاده می‌کند:
-
-### ۱. منبع اصلی: **[baha24.com](https://baha24.com)** — نرخ بازار آزاد 🟢
-```
-GET https://baha24.com/api/v1/price
-```
-- ✅ نرخ‌های لحظه‌ای بازار آزاد ایران
-- ⚠️ ممکن است به دلیل CORS بلاک شود (از پروکسی استفاده می‌شود)
-
-### ۲. منبع دوم: **[SamadiPour/rial-exchange-rates-archive](https://github.com/SamadiPour/rial-exchange-rates-archive)** — نرخ بازار آزاد 🟢
-```
-GET https://raw.githubusercontent.com/SamadiPour/.../gregorian/YYYY/MM/DD
-```
-- ✅ نرخ‌های بازار آزاد (منبع: bonbast.com)
-- ✅ بدون مشکل CORS (از GitHub CDN)
-- ⚠️ بروزرسانی روزانه (نه لحظه‌ای)
-
-### ۳. منبع سوم: **[open.er-api.com](https://www.exchangerate-api.com)** — نرخ رسمی 🟡
-```
-GET https://open.er-api.com/v6/latest/USD
-```
-- ✅ پشتیبانی کامل از CORS و همیشه در دسترس
-- ⚠️ نرخ رسمی بانک مرکزی (نه بازار آزاد)
-
-### 🔄 سیستم Fallback خودکار
-برنامه به ترتیب از هر ۳ منبع تلاش می‌کند. اگر نرخ بازار آزاد در دسترس نباشد، از نرخ رسمی استفاده و نشانگر زرد رنگ نمایش داده می‌شود.
-
-### ارزهای پشتیبانی شده — Supported Currencies
-
-| پرچم | کد | نام فارسی | نام انگلیسی |
-|:---:|:---:|---|---|
-| 🇮🇷 | IRR | ریال ایران | Iranian Rial |
-| 🇺🇸 | USD | دلار آمریکا | US Dollar |
-| 🇪🇺 | EUR | یورو اتحادیه اروپا | Euro |
-| 🇬🇧 | GBP | پوند انگلیس | British Pound |
-| 🇨🇭 | CHF | فرانک سوئیس | Swiss Franc |
-| 🇯🇵 | JPY | ین ژاپن | Japanese Yen |
-| 🇨🇦 | CAD | دلار کانادا | Canadian Dollar |
-| 🇦🇺 | AUD | دلار استرالیا | Australian Dollar |
-| 🇨🇳 | CNY | یوآن چین | Chinese Yuan |
-| 🇹🇷 | TRY | لیر ترکیه | Turkish Lira |
-| 🇦🇪 | AED | درهم امارات | UAE Dirham |
-
+## 
 ---
 
-## 📲 نصب به عنوان اپلیکیشن — Install as App (PWA)
+## 📲 نصب به عنوان اپ (PWA)
 
-### 🍎 iOS (Safari)
-1. سایت را در Safari باز کنید
-2. دکمه Share (مربع با فلش بالا) را بزنید
-3. گزینه **"Add to Home Screen"** را انتخاب کنید
-
-### 🤖 Android (Chrome)
-1. سایت را در Chrome باز کنید
-2. منوی سه‌نقطه را بزنید
-3. گزینه **"Add to Home Screen"** یا **"Install App"** را انتخاب کنید
-
-### 💻 Desktop (Chrome/Edge)
-1. آیکون نصب در نوار آدرس (یا منوی سه‌نقطه) را بزنید
-2. **"Install"** را انتخاب کنید
-
-پس از نصب، برنامه مانند یک اپلیکیشن بومی **تمام‌صفحه** و بدون نوار مرورگر اجرا می‌شود.
+- **iOS Safari:** Share → Add to Home Screen  
+- **Android Chrome:** منو → Install app / Add to Home Screen  
+- **Desktop:** آیکون Install در نوار آدرس  
 
 ---
 
 ## 🌐 استقرار — Deployment
 
-### GitHub Pages
-
-```bash
-npm run build
-```
-
-سپس محتوای پوشه `dist/` را روی شاخه `gh-pages` push کنید یا از GitHub Actions استفاده کنید.
-
-### Vercel / Netlify
-
-این پروژه بدون هیچ تنظیماتی روی Vercel و Netlify مستقر می‌شود. فقط repository را import کنید.
-
-### هر سرور استاتیک
-
-فایل `dist/index.html` به صورت self-contained (تک‌فایل) ساخته می‌شود و می‌تواند روی هر سرور وبی (Apache, Nginx, S3, ...) میزبانی شود.
-
----
-
-## 🤝 مشارکت — Contributing
-
-مشارکت شما با کمال میل پذیرفته می‌شود! 🙏
-
-1. Fork کنید
-2. Branch جدید بسازید: `git checkout -b feature/amazing-feature`
-3. Commit کنید: `git commit -m 'feat: add amazing feature'`
-4. Push کنید: `git push origin feature/amazing-feature`
-5. Pull Request باز کنید
+- **Vercel / Netlify:** import ریپو  
+- **GitHub Pages:** `npm run build` سپس محتوای `dist/`  
+- هر هاست استاتیک با فایل تک‌صفحه‌ای `dist/index.html`
 
 ---
 
 ## 📄 لایسنس — License
 
-این پروژه تحت لایسنس **[MIT](./LICENSE)** منتشر شده است.
-
-This project is licensed under the **[MIT License](./LICENSE)**.
+[MIT](./LICENSE)
 
 ---
 

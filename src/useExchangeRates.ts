@@ -23,7 +23,7 @@ export interface RatesData {
 }
 
 const TOMAN_TO_RIAL = 10;
-const FETCH_TIMEOUT = 10000;
+const FETCH_TIMEOUT = 7000;
 const CACHE_KEY = "bonbast_rates_v3";
 const CACHE_MAX_AGE = 90 * 1000;
 
@@ -63,18 +63,74 @@ async function fetchJSON(url: string, timeout = FETCH_TIMEOUT) {
 // ══════════════════════════════════════════════════════════
 //  LIVE (own Oracle server, scrape.py + serve.py)
 // ══════════════════════════════════════════════════════════
+function normalizeToRial(rates: Record<string, CurrencyRate>): Record<string, CurrencyRate> {
+  // اگر USD شبیه تومان باشد (بازار آزاد فعلی معمولاً > 200_000 ریال)، همه را ×۱۰ کن
+  const usd = rates.USD?.sellRial;
+  if (usd && usd > 0 && usd < 200_000) {
+    const out: Record<string, CurrencyRate> = {};
+    for (const [k, v] of Object.entries(rates)) {
+      out[k] = {
+        ...v,
+        sellRial: v.sellRial * TOMAN_TO_RIAL,
+        buyRial: v.buyRial * TOMAN_TO_RIAL,
+      };
+    }
+    return out;
+  }
+  return rates;
+}
+
+function normalizeGoldToRial(gold: Record<string, GoldRate>): Record<string, GoldRate> {
+  const sample = Object.values(gold)[0]?.sellRial;
+  // سکه امامی معمولاً چند ده میلیون ریال است؛ اگر خیلی کوچک بود ×۱۰
+  if (sample && sample > 0 && sample < 5_000_000) {
+    const out: Record<string, GoldRate> = {};
+    for (const [k, v] of Object.entries(gold)) {
+      out[k] = {
+        ...v,
+        sellRial: v.sellRial * TOMAN_TO_RIAL,
+        buyRial: v.buyRial * TOMAN_TO_RIAL,
+      };
+    }
+    return out;
+  }
+  return gold;
+}
+
 async function fetchFromLiveServer(): Promise<RatesData | null> {
   if (!LIVE_SERVER_URL || LIVE_SERVER_URL.includes("YOUR_SERVER_IP")) return null;
   try {
-    const json = await fetchJSON(LIVE_SERVER_URL, 5000);
+    const json = await fetchJSON(LIVE_SERVER_URL, 20000);
     if (!json?.rates?.USD || !json?.rates?.EUR) return null;
 
+    const rates = normalizeToRial(json.rates as Record<string, CurrencyRate>);
+    const gold = normalizeGoldToRial((json.gold ?? {}) as Record<string, GoldRate>);
+
+    // اطمینان از اینکه EUR و USD منطقی‌اند (EUR معمولاً ~1.05–1.2 برابر USD به ریال)
+    const usd = rates.USD?.sellRial ?? 0;
+    const eur = rates.EUR?.sellRial ?? 0;
+    if (usd > 0 && eur > 0) {
+      const ratio = eur / usd;
+      // اگر EUR خیلی غیرمنطقی بود (مثلاً به‌اشتباه همان عدد تومان/واحد اشتباه)، از مقیاس USD استفاده کن
+      if (ratio < 0.5 || ratio > 2.5) {
+        // احتمالاً EUR به واحد اشتباه است؛ دست نزن ولی لاگ کن
+        console.warn("Suspicious EUR/USD ratio from live server:", ratio);
+      }
+    }
+
+    const fetchedAt = new Date(json.fetchedAt ?? Date.now());
+    const rateDate =
+      (typeof json.rateDate === "string" && json.rateDate) ||
+      (Number.isFinite(fetchedAt.getTime())
+        ? `${fetchedAt.getFullYear()}-${String(fetchedAt.getMonth() + 1).padStart(2, "0")}-${String(fetchedAt.getDate()).padStart(2, "0")}`
+        : new Date().toISOString().split("T")[0]);
+
     return {
-      rates: json.rates,
-      gold: json.gold ?? {},
-      fetchedAt: new Date(json.fetchedAt ?? Date.now()),
+      rates,
+      gold,
+      fetchedAt,
       source: "bonbast-live",
-      rateDate: json.rateDate ?? new Date().toISOString().split("T")[0],
+      rateDate,
     };
   } catch { return null; }
 }
@@ -82,57 +138,91 @@ async function fetchFromLiveServer(): Promise<RatesData | null> {
 // ══════════════════════════════════════════════════════════
 //  BONBAST ARCHIVE (from bonbast.com via GitHub)
 // ══════════════════════════════════════════════════════════
+function parseBonbastDay(json: Record<string, unknown>): RatesData | null {
+  const dates = Object.keys(json).sort().reverse();
+  if (dates.length === 0) return null;
+
+  const latestDate = dates[0];
+  const dayData = json[latestDate] as Record<string, { sell?: number; buy?: number }> | undefined;
+  if (!dayData?.usd?.sell) return null;
+
+  const rates: Record<string, CurrencyRate> = {};
+  const gold: Record<string, GoldRate> = {};
+
+  for (const [code, val] of Object.entries(dayData)) {
+    const v = val as { sell?: number; buy?: number };
+    if (!v.sell) continue;
+
+    if (GOLD_CODES.includes(code)) {
+      gold[code] = {
+        code,
+        sellRial: v.sell * TOMAN_TO_RIAL,
+        buyRial: (v.buy ?? v.sell) * TOMAN_TO_RIAL,
+        lastUpdate: latestDate,
+      };
+      continue;
+    }
+
+    const divisor = ARCHIVE_DIVISORS[code] ?? 1;
+    rates[code.toUpperCase()] = {
+      symbol: code.toUpperCase(),
+      sellRial: (v.sell * TOMAN_TO_RIAL) / divisor,
+      buyRial: ((v.buy ?? v.sell) * TOMAN_TO_RIAL) / divisor,
+      lastUpdate: latestDate,
+    };
+  }
+
+  if (!rates.USD || !rates.EUR) return null;
+  return { rates, gold, fetchedAt: new Date(), source: "bonbast", rateDate: latestDate };
+}
+
 async function fetchFromBonbast(): Promise<RatesData | null> {
+  // هر دو CDN به‌صورت موازی؛ هر کدام زودتر جواب درست داد برنده است
   const urls = [
     "https://cdn.jsdelivr.net/gh/SamadiPour/rial-exchange-rates-archive@data/gregorian_7days.min.json",
+    "https://fastly.jsdelivr.net/gh/SamadiPour/rial-exchange-rates-archive@data/gregorian_7days.min.json",
     "https://raw.githubusercontent.com/SamadiPour/rial-exchange-rates-archive/data/gregorian_7days.min.json",
   ];
 
-  for (const url of urls) {
-    try {
-      const json = await fetchJSON(url);
-      if (!json || typeof json !== "object") continue;
+  const controllers: AbortController[] = [];
 
-      const dates = Object.keys(json).sort().reverse();
-      if (dates.length === 0) continue;
+  try {
+    const result = await new Promise<RatesData | null>((resolve) => {
+      let pending = urls.length;
+      let done = false;
 
-      const latestDate = dates[0];
-      const dayData = json[latestDate];
-      if (!dayData?.usd?.sell) continue;
+      urls.forEach((url) => {
+        const ctrl = new AbortController();
+        controllers.push(ctrl);
+        const timer = setTimeout(() => ctrl.abort(), 6000);
 
-      const rates: Record<string, CurrencyRate> = {};
-      const gold: Record<string, GoldRate> = {};
+        fetch(url, { signal: ctrl.signal })
+          .then((res) => {
+            if (!res.ok) throw new Error(res.statusText);
+            return res.json();
+          })
+          .then((json) => {
+            if (done || !json || typeof json !== "object") return;
+            const parsed = parseBonbastDay(json as Record<string, unknown>);
+            if (parsed) {
+              done = true;
+              controllers.forEach((c) => c.abort());
+              resolve(parsed);
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            clearTimeout(timer);
+            pending -= 1;
+            if (pending === 0 && !done) resolve(null);
+          });
+      });
+    });
 
-      for (const [code, val] of Object.entries(dayData)) {
-        const v = val as { sell?: number; buy?: number };
-        if (!v.sell) continue;
-
-        // Gold & coins
-        if (GOLD_CODES.includes(code)) {
-          gold[code] = {
-            code,
-            sellRial: v.sell * TOMAN_TO_RIAL,
-            buyRial: (v.buy ?? v.sell) * TOMAN_TO_RIAL,
-            lastUpdate: latestDate,
-          };
-          continue;
-        }
-
-        const divisor = ARCHIVE_DIVISORS[code] ?? 1;
-        rates[code.toUpperCase()] = {
-          symbol: code.toUpperCase(),
-          sellRial: (v.sell * TOMAN_TO_RIAL) / divisor,
-          buyRial: ((v.buy ?? v.sell) * TOMAN_TO_RIAL) / divisor,
-          lastUpdate: latestDate,
-        };
-      }
-
-      if (rates.USD && rates.EUR) {
-        return { rates, gold, fetchedAt: new Date(), source: "bonbast", rateDate: latestDate };
-      }
-    } catch { continue; }
+    return result;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -158,6 +248,103 @@ async function fetchFromOpenEr(): Promise<RatesData | null> {
 }
 
 // ══════════════════════════════════════════════════════════
+//  ARCHIVE (for Archive tab + Graph tab)
+// ══════════════════════════════════════════════════════════
+export interface ArchiveDayData {
+  date: string; // YYYY-MM-DD
+  rates: Record<string, { sell: number; buy: number }>; // Toman
+}
+
+const archiveMonthCache = new Map<string, ArchiveDayData[]>();
+
+async function fetchMonthArchive(year: number, month: number): Promise<ArchiveDayData[]> {
+  const cacheKey = `${year}-${month}`;
+  if (archiveMonthCache.has(cacheKey)) return archiveMonthCache.get(cacheKey)!;
+
+  const mm = String(month).padStart(2, "0");
+  const urls = [
+    `https://cdn.jsdelivr.net/gh/SamadiPour/rial-exchange-rates-archive@main/gregorian/${year}/${mm}/full`,
+    `https://raw.githubusercontent.com/SamadiPour/rial-exchange-rates-archive/main/gregorian/${year}/${mm}/full`,
+  ];
+
+  for (const url of urls) {
+    try {
+      const json = await fetchJSON(url);
+      if (!json || typeof json !== "object") continue;
+
+      const days: ArchiveDayData[] = [];
+      for (const [date, dayData] of Object.entries(json as Record<string, unknown>)) {
+        const rates: Record<string, { sell: number; buy: number }> = {};
+        for (const [code, val] of Object.entries(dayData as Record<string, unknown>)) {
+          const v = val as { sell?: number; buy?: number };
+          if (v?.sell) rates[code.toUpperCase()] = { sell: v.sell, buy: v.buy ?? v.sell };
+        }
+        days.push({ date, rates });
+      }
+      archiveMonthCache.set(cacheKey, days);
+      return days;
+    } catch { continue; }
+  }
+  return [];
+}
+
+
+/** آرشیو بین دو تاریخ (شامل هر دو طرف)، قیمت‌ها به تومان. */
+export async function fetchArchiveByDates(fromDate: string, toDate: string): Promise<ArchiveDayData[]> {
+  if (!fromDate || !toDate) return [];
+  const start = new Date(fromDate + "T00:00:00Z");
+  const end = new Date(toDate + "T00:00:00Z");
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return [];
+
+  const months = new Set<string>();
+  const cur = new Date(start);
+  while (cur <= end) {
+    months.add(`${cur.getUTCFullYear()}-${cur.getUTCMonth() + 1}`);
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+
+  const results = await Promise.all(
+    Array.from(months).map((m) => {
+      const [y, mo] = m.split("-").map(Number);
+      return fetchMonthArchive(y, mo);
+    })
+  );
+
+  const all = results.flat();
+  const fromStr = fromDate;
+  const toStr = toDate;
+  const filtered = all.filter((d) => d.date >= fromStr && d.date <= toStr);
+  const seen = new Set<string>();
+  const deduped = filtered.filter((d) => (seen.has(d.date) ? false : (seen.add(d.date), true)));
+  deduped.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return deduped;
+}
+
+/** آخرین N روز آرشیو رو برمی‌گردونه (جدیدترین اول)، قیمت‌ها به تومان. */
+export async function fetchArchiveRange(days: number): Promise<ArchiveDayData[]> {
+  const now = new Date();
+  const months = new Set<string>();
+  for (let i = 0; i <= days + 3; i += 1) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    months.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
+  }
+
+  const results = await Promise.all(
+    Array.from(months).map((m) => {
+      const [y, mo] = m.split("-").map(Number);
+      return fetchMonthArchive(y, mo);
+    })
+  );
+
+  const all = results.flat();
+  const seen = new Set<string>();
+  const deduped = all.filter((d) => (seen.has(d.date) ? false : (seen.add(d.date), true)));
+  deduped.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return deduped.slice(0, days);
+}
+
+// ══════════════════════════════════════════════════════════
 //  HOOK
 // ══════════════════════════════════════════════════════════
 export function useExchangeRates(refreshInterval = 30_000) {
@@ -169,24 +356,52 @@ export function useExchangeRates(refreshInterval = 30_000) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isFetchingRef = useRef(false);
+  const liveWinsRef = useRef(false);
 
   const fetchRates = useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
+    liveWinsRef.current = false;
     try {
-      setLoading(true);
       setError(null);
 
-      const live = await fetchFromLiveServer();
-      if (live) { setData(live); saveCache(live); setCountdown(refreshInterval / 1000); return; }
+      const livePromise = fetchFromLiveServer().then((live) => {
+        if (live) {
+          liveWinsRef.current = true;
+          setData(live);
+          saveCache(live);
+          setCountdown(refreshInterval / 1000);
+          setLoading(false);
+        }
+        return live;
+      });
 
-      const bonbast = await fetchFromBonbast();
-      if (bonbast) { setData(bonbast); saveCache(bonbast); setCountdown(refreshInterval / 1000); return; }
+      // بک‌آپ موازی با live — زودتر که رسید نشان داده می‌شود؛ اگر بعداً live آمد جایگزین می‌شود
+      const backupPromise = (async () => {
+        const bonbast = await fetchFromBonbast();
+        if (bonbast) return bonbast;
+        return await fetchFromOpenEr();
+      })().then((backup) => {
+        if (backup && !liveWinsRef.current) {
+          setData(backup);
+          saveCache(backup);
+          setCountdown(refreshInterval / 1000);
+          setLoading(false);
+        }
+        return backup;
+      });
 
-      const official = await fetchFromOpenEr();
-      if (official) { setData(official); saveCache(official); setCountdown(refreshInterval / 1000); return; }
+      const [live, backup] = await Promise.all([livePromise, backupPromise]);
 
-      throw new Error("All sources failed");
+      if (!live && !backup) {
+        throw new Error("All sources failed");
+      }
+      // اگر فقط backup بود و هنوز set نشده (نادر)، دوباره set کن
+      if (!live && backup && !liveWinsRef.current) {
+        setData(backup);
+        saveCache(backup);
+        setCountdown(refreshInterval / 1000);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -223,7 +438,14 @@ export function useExchangeRates(refreshInterval = 30_000) {
     [data]
   );
 
+  const getRatePair = useCallback(
+    (sym: string): { buy: number; sell: number } | null => {
+      const r = data?.rates?.[sym];
+      return r ? { buy: r.buyRial, sell: r.sellRial } : null;
+    }, [data]
+  );
+
   return useMemo(() => ({
-    data, loading, error, countdown, fetchRates, convert, getRateInRial,
-  }), [data, loading, error, countdown, fetchRates, convert, getRateInRial]);
+    data, loading, error, countdown, fetchRates, convert, getRateInRial, getRatePair,
+  }), [data, loading, error, countdown, fetchRates, convert, getRateInRial, getRatePair]);
 }
