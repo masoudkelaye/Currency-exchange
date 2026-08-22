@@ -372,14 +372,13 @@ export function useExchangeRates(refreshInterval = 30_000) {
         return await fetchFromOpenEr();
       })();
 
-      // بار اول: اگر هنوز داده‌ای نیست، backup را زود نشان بده (بدون حذف live بعدی)
+      // فقط وقتی هنوز هیچ داده‌ای روی صفحه نیست، backup را زود نشان بده
       void backupPromise.then((backup) => {
         if (!backup || liveWinsRef.current) return;
         setData((current) => {
-          // اگر همین الان live آمده یا از قبل live بود، آرشیو را جایگزین نکن (جلوگیری از چشمک نشانگر)
           if (liveWinsRef.current) return current;
           if (current?.source === "bonbast-live" || current?.source === "live") return current;
-          if (current) return current; // در رفرش‌های بعدی هم دادهٔ موجود را نگه دار تا live/backup نهایی مشخص شود
+          if (current) return current;
           return backup;
         });
         setLoading(false);
@@ -388,19 +387,14 @@ export function useExchangeRates(refreshInterval = 30_000) {
       const [live, backup] = await Promise.all([livePromise, backupPromise]);
 
       if (live) {
+        // همیشه live برنده است (حتی اگر قبلاً آرشیو روی صفحه بود)
         liveWinsRef.current = true;
         setData(live);
         saveCache(live);
         setCountdown(refreshInterval / 1000);
       } else if (backup) {
-        setData((current) => {
-          // live شکست خورد؛ فقط اگر live فعال روی صفحه نیست، backup بگذار
-          if (current?.source === "bonbast-live" || current?.source === "live") {
-            // یک‌بار live از دست رفت — به backup سوییچ کن
-            return backup;
-          }
-          return backup;
-        });
+        // live در دسترس نیست — آرشیو/رسمی
+        setData(backup);
         saveCache(backup);
         setCountdown(refreshInterval / 1000);
       } else {

@@ -486,7 +486,13 @@ export default function App() {
   const [lang, setLang] = useState<Lang>("fa");
   const [fromCurrency, setFromCurrency] = useState<CurrencyInfo>(currencies[0]);
   const [amount, setAmount] = useState("10,000,000");
-  const [unit, setUnit] = useState<Unit>("rial");
+  const [unit, setUnit] = useState<Unit>(() => {
+    try {
+      const s = localStorage.getItem("ce_unit");
+      if (s === "rial" || s === "toman") return s;
+    } catch { /* ignore */ }
+    return "rial";
+  });
   const [tab, setTab] = useState<Tab>(() => {
     try {
       const s = localStorage.getItem("ce_active_tab");
@@ -586,6 +592,10 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem("ce_active_tab", tab); } catch { /* ignore */ }
   }, [tab]);
+
+  useEffect(() => {
+    try { localStorage.setItem("ce_unit", unit); } catch { /* ignore */ }
+  }, [unit]);
 
   const unitLabel = unit === "toman" ? t.tomanUnit : t.rialUnit;
 

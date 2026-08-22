@@ -2,7 +2,7 @@
 // Works even when the app is served as a single file
 
 const SW_CODE = `
-const CACHE_NAME = "currency-v3";
+const CACHE_NAME = "currency-v4";
 const API_CACHE = "api-v1";
 const FONT_CACHE = "fonts-v1";
 

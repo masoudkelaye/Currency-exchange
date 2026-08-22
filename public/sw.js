@@ -1,4 +1,4 @@
-const CACHE_NAME = "currency-converter-v3";
+const CACHE_NAME = "currency-converter-v4";
 const STATIC_ASSETS = [
   ".",
   "./index.html",
@@ -29,6 +29,16 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
+
+  // API نرخ: همیشه Network First (کش کهنه نشانگر زنده را خراب نکند)
+  if (url.pathname === "/api/rates.json" || url.pathname.endsWith("/rates.json")) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => res)
+        .catch(() => caches.match(e.request).then((c) => c || Response.error()))
+    );
+    return;
+  }
 
   if (
     url.hostname === "fonts.googleapis.com" ||
